@@ -1,30 +1,15 @@
+# app/fetchers.py
+
 import requests
 import json
 import os
-from time import time
 from app.utils import fmt, deg_to_cardinal
 
-CACHE_PATH = "/tmp/rowcast_cache"
-os.makedirs(CACHE_PATH, exist_ok=True)
-
-def load_cache(key, ttl=300):
-    path = os.path.join(CACHE_PATH, f"{key}.json")
-    if not os.path.exists(path):
-        return None
-    with open(path, "r") as f:
-        obj = json.load(f)
-    if time() - obj.get("timestamp", 0) > ttl:
-        return None
-    return obj.get("data")
-
-def save_cache(key, data):
-    with open(os.path.join(CACHE_PATH, f"{key}.json"), "w") as f:
-        json.dump({ "timestamp": time(), "data": data }, f)
+# The file cache logic has been removed and is now handled by Redis.
 
 def fetch_water_data():
-    cached = load_cache("water", ttl=10)
-    if cached:
-        return cached
+    """Fetches the latest water data from the USGS API."""
+    print("FETCHER: Calling USGS Water Services API...")
     site_id = "01474500"
     params = "00010,00065,00060"
     url = f"https://waterservices.usgs.gov/nwis/iv/?sites={site_id}&parameterCd={params}&format=json"
@@ -32,21 +17,23 @@ def fetch_water_data():
     out = {'gaugeHeight': None, 'waterTemp': None, 'discharge': None}
     for series in data.get('value', {}).get('timeSeries', []):
         name = series['variable']['variableName'].lower()
-        val = series['values'][0]['value'][0]['value']
-        if 'gage height' in name:
-            out['gaugeHeight'] = float(val)
-        elif 'temperature' in name:
-            out['waterTemp'] = float(val) * 1.8 + 32
-        elif 'discharge' in name or 'flow' in name:
-            # discharge may appear under different variable names
-            out['discharge'] = int(float(val))
-    save_cache("water", out)
+        # Ensure values exist before trying to access them
+        try:
+            val = series['values'][0]['value'][0]['value']
+            if 'gage height' in name:
+                out['gaugeHeight'] = float(val)
+            elif 'temperature' in name:
+                out['waterTemp'] = float(val) * 1.8 + 32
+            elif 'discharge' in name or 'flow' in name:
+                out['discharge'] = int(float(val))
+        except (IndexError, KeyError):
+            # This handles cases where a time series has no value data
+            continue
     return out
 
 def fetch_weather_data():
-    cached = load_cache("weather")
-    if cached:
-        return cached
+    """Fetches the latest weather data from the Open-Meteo API."""
+    print("FETCHER: Calling Open-Meteo API...")
     lat, lon = 39.8682, -75.5916
     url = (
         f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}"
@@ -69,5 +56,4 @@ def fetch_weather_data():
         'precipitation': current.get('precipitation'),
         'currentTemp': current.get('temperature_2m')
     }
-    save_cache("weather", out)
     return out
