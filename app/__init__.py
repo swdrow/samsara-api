@@ -27,7 +27,7 @@ def create_app():
     # Import tasks here, inside the factory, to ensure the app context is available
     # and to avoid circular imports.
     with app.app_context():
-        from app.tasks import update_weather_data_job, update_water_data_job
+        from app.tasks import update_weather_data_job, update_water_data_job, update_forecast_scores_job
 
         if not scheduler.running:
             scheduler.init_app(app) # Initialize scheduler with the app
@@ -41,13 +41,19 @@ def create_app():
             id='Update Weather Data',
             func=update_weather_data_job,
             trigger='interval',
-            minutes=5
+            minutes=10  # Reduced frequency for API rate limiting
         )
         scheduler.add_job(
             id='Update Water Data',
             func=update_water_data_job,
             trigger='interval',
-            minutes=1
+            minutes=15  # Reduced frequency for API rate limiting
+        )
+        scheduler.add_job(
+            id='Update Forecast Scores',
+            func=update_forecast_scores_job,
+            trigger='interval',
+            minutes=10  # Calculate forecast scores after data updates
         )
 
     return app
