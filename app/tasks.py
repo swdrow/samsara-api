@@ -1,4 +1,5 @@
 # app/tasks.py
+import logging
 
 import json
 from datetime import datetime, timedelta
@@ -8,6 +9,8 @@ from app.rowcast import compute_rowcast, merge_params
 from app.extensions import redis_client
 
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 def extrapolate(historical_list, current_value, target_dt):
     """Extrapolate a value based on the last two historical points within 3 hours"""
@@ -20,6 +23,11 @@ def extrapolate(historical_list, current_value, target_dt):
         last = sorted_list[-1]
         prev_dt = datetime.fromisoformat(prev['timestamp'].replace('Z', '+00:00'))
         last_dt = datetime.fromisoformat(last['timestamp'].replace('Z', '+00:00'))
+        # Strip timezone info to compare with naive target_dt
+        if prev_dt.tzinfo is not None:
+            prev_dt = prev_dt.replace(tzinfo=None)
+        if last_dt.tzinfo is not None:
+            last_dt = last_dt.replace(tzinfo=None)
         time_diff = (last_dt - prev_dt).total_seconds()
         if time_diff == 0:
             return current_value
@@ -30,7 +38,8 @@ def extrapolate(historical_list, current_value, target_dt):
             return last['value'] + slope * delta_sec
         return current_value
     except Exception:
-        return current_value
+        logging.exception("Error extrapolating data")
+        raise
 
 def update_weather_data_job():
     """Fetches new weather data and stores it in Redis."""
@@ -101,7 +110,12 @@ def update_forecast_scores_job():
                 # Use dynamic projections for water
                 'discharge': discharge_pred,
                 'waterTemp': temp_pred,
-                'gaugeHeight': gauge_pred
+                'gaugeHeight': gauge_pred,
+                # Add safety parameters
+                'weatherAlerts': forecast_hour.get('weatherAlerts', []),
+                'visibility': forecast_hour.get('visibility'),
+                'lightningPotential': forecast_hour.get('lightningPotential'),
+                'precipitationProbability': forecast_hour.get('precipitationProbability')
             }
             
             score = compute_rowcast(forecast_params)
@@ -112,8 +126,70 @@ def update_forecast_scores_job():
                 'conditions': forecast_params
             })
         
+        # Create simplified scores array with just timestamps and scores
+        simple_scores = [
+            {
+                'timestamp': score['timestamp'],
+                'score': score['score']
+            }
+            for score in forecast_scores
+        ]
+        
         redis_client.set('forecast_scores', json.dumps(forecast_scores))
+        redis_client.set('forecast_scores_simple', json.dumps(simple_scores))
         print("SCHEDULER JOB: Forecast scores updated successfully.")
         
     except Exception as e:
         print(f"SCHEDULER JOB: Failed to update forecast scores. Error: {e}")
+
+def update_short_term_forecast_job():
+    """Calculates rowcast scores for 15-minute intervals over the next 3 hours."""
+    print("SCHEDULER JOB: Running short-term forecast scores update...")
+    try:
+        from app.fetchers import fetch_short_term_forecast
+        
+        # Get 15-minute forecast data
+        short_term_data = fetch_short_term_forecast()
+        
+        short_term_scores = []
+        
+        # Calculate scores for each 15-minute interval
+        for interval in short_term_data.get('forecast', []):
+            forecast_params = {
+                'windSpeed': interval.get('windSpeed'),
+                'windGust': interval.get('windGust'),
+                'apparentTemp': interval.get('apparentTemp'),
+                'uvIndex': interval.get('uvIndex', 0),  # Default to 0 for short-term
+                'precipitation': interval.get('precipitation'),
+                'discharge': interval.get('discharge'),
+                'waterTemp': interval.get('waterTemp'),
+                'gaugeHeight': interval.get('gaugeHeight'),
+                'weatherAlerts': interval.get('weatherAlerts', []),
+                'visibility': interval.get('visibility'),
+                'lightningPotential': interval.get('lightningPotential', 0),
+                'precipitationProbability': interval.get('precipitationProbability')
+            }
+            
+            score = compute_rowcast(forecast_params)
+            
+            short_term_scores.append({
+                'timestamp': interval.get('timestamp'),
+                'score': score,
+                'conditions': forecast_params
+            })
+        
+        # Create simplified scores for short-term
+        simple_short_term = [
+            {
+                'timestamp': score['timestamp'],
+                'score': score['score']
+            }
+            for score in short_term_scores
+        ]
+        
+        redis_client.set('short_term_forecast', json.dumps(short_term_scores))
+        redis_client.set('short_term_forecast_simple', json.dumps(simple_short_term))
+        print(f"SCHEDULER JOB: Short-term forecast scores updated successfully with {len(short_term_scores)} intervals.")
+        
+    except Exception as e:
+        print(f"SCHEDULER JOB: Failed to update short-term forecast scores. Error: {e}")

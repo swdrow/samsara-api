@@ -4,11 +4,10 @@ Test script to verify API functionality
 """
 
 import requests
-import json
 import time
-from datetime import datetime
+import pytest
 
-BASE_URL = "http://localhost:5000"
+BASE_URL = "http://localhost:5000/api"
 
 def test_endpoint(endpoint, description):
     """Test a single API endpoint"""
@@ -16,48 +15,45 @@ def test_endpoint(endpoint, description):
         print(f"\n--- Testing {description} ---")
         response = requests.get(f"{BASE_URL}{endpoint}", timeout=10)
         print(f"Status: {response.status_code}")
-        
-        if response.status_code == 200:
-            data = response.json()
-            print(f"Response keys: {list(data.keys()) if isinstance(data, dict) else 'List with ' + str(len(data)) + ' items'}")
-            if isinstance(data, dict) and len(str(data)) < 500:
-                print(f"Sample data: {json.dumps(data, indent=2)[:500]}...")
-            elif isinstance(data, list) and len(data) > 0:
-                print(f"First item: {json.dumps(data[0], indent=2)}")
-        else:
-            print(f"Error: {response.text}")
-            
+        assert response.status_code == 200, f"Endpoint {endpoint} failed: {response.text}"
+        return response.json()
     except Exception as e:
-        print(f"Failed to test {endpoint}: {e}")
+        pytest.fail(f"Failed to test {endpoint}: {e}")
 
-def main():
-    """Run all API tests"""
-    print("=== RowCast API Test Suite ===")
-    print(f"Testing API at {BASE_URL}")
-    print(f"Test started at: {datetime.now()}")
-    
-    # Wait a moment for data to be available
+@pytest.fixture(scope="session", autouse=True)
+def wait_for_data():
+    """Wait for initial data fetch before running tests."""
     print("\nWaiting 30 seconds for initial data fetch...")
     time.sleep(30)
-    
-    # Test all endpoints
-    endpoints = [
-        ("/api/weather", "Weather Data (Full)"),
-        ("/api/weather/current", "Current Weather"),
-        ("/api/weather/forecast", "Weather Forecast"),
-        ("/api/water", "Water Data (Full)"),
-        ("/api/water/current", "Current Water Data"),
-        ("/api/water/predictions", "Water Predictions"),
-        ("/api/rowcast", "Current RowCast Score"),
-        ("/api/rowcast/forecast", "RowCast Forecast"),
-        ("/api/rowcast/forecast/2h", "RowCast Score in 2 hours"),
-        ("/api/complete", "Complete Data"),
-    ]
-    
-    for endpoint, description in endpoints:
-        test_endpoint(endpoint, description)
-    
-    print(f"\n=== Test completed at: {datetime.now()} ===")
+
+def test_weather_full():
+    data = test_endpoint("/weather", "Weather Data (Full)")
+    assert "current" in data and "forecast" in data
+
+def test_weather_current():
+    test_endpoint("/weather/current", "Current Weather")
+
+def test_weather_forecast():
+    test_endpoint("/weather/forecast", "Weather Forecast")
+
+def test_water_full():
+    data = test_endpoint("/water", "Water Data (Full)")
+    assert "current" in data and "predictions" in data
+
+def test_water_current():
+    test_endpoint("/water/current", "Current Water Data")
+
+def test_water_predictions():
+    test_endpoint("/water/predictions", "Water Predictions")
+
+def test_rowcast_current():
+    test_endpoint("/rowcast", "Current RowCast Score")
+
+def test_rowcast_forecast():
+    test_endpoint("/rowcast/forecast", "RowCast Forecast")
+
+def test_complete_data():
+    test_endpoint("/complete", "Complete Data")
 
 if __name__ == "__main__":
-    main()
+    pytest.main([__file__])

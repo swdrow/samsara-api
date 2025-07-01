@@ -3,9 +3,13 @@
 from flask import Blueprint, jsonify, request
 import json
 from datetime import datetime, timedelta
+import pytz
 # Import the redis_client instance from the extensions file
 from app.extensions import redis_client
 from app.rowcast import compute_rowcast, merge_params
+
+# EST timezone
+EST = pytz.timezone('America/New_York')
 
 # ... rest of the file is the same ...
 bp = Blueprint("api", __name__)
@@ -105,20 +109,29 @@ def rowcast_forecast():
         return jsonify(forecast_scores)
     return jsonify({"error": "Forecast scores not available yet."}), 404
 
+@bp.route("/api/rowcast/forecast/simple")
+def rowcast_forecast_simple():
+    """Get simplified rowcast forecast with just timestamps and scores"""
+    simple_scores = get_data_from_redis('forecast_scores_simple')
+    if simple_scores:
+        return jsonify(simple_scores)
+    return jsonify({"error": "Simple forecast scores not available yet."}), 404
+
 @bp.route("/api/rowcast/forecast/<time_offset>")
 def rowcast_forecast_offset(time_offset):
     """Get rowcast score for a specific time offset (e.g., '2h', '30m', '1d')"""
     try:
-        # Parse time offset
+        # Parse time offset using EST timezone
+        now_est = datetime.now(EST)
         if time_offset.endswith('h'):
             hours = int(time_offset[:-1])
-            target_time = datetime.now() + timedelta(hours=hours)
+            target_time = now_est + timedelta(hours=hours)
         elif time_offset.endswith('m'):
             minutes = int(time_offset[:-1])
-            target_time = datetime.now() + timedelta(minutes=minutes)
+            target_time = now_est + timedelta(minutes=minutes)
         elif time_offset.endswith('d'):
             days = int(time_offset[:-1])
-            target_time = datetime.now() + timedelta(days=days)
+            target_time = now_est + timedelta(days=days)
         else:
             return jsonify({"error": "Invalid time format. Use format like '2h', '30m', '1d'"}), 400
         
@@ -186,3 +199,82 @@ def complete_data():
     }
     
     return jsonify(response)
+
+@bp.route("/api/rowcast/forecast/short-term")
+def rowcast_short_term_forecast():
+    """Get 15-minute interval rowcast forecast for the next 3 hours"""
+    short_term_scores = get_data_from_redis('short_term_forecast')
+    if short_term_scores:
+        return jsonify(short_term_scores)
+    return jsonify({"error": "Short-term forecast scores not available yet."}), 404
+
+@bp.route("/api/rowcast/forecast/short-term/simple")
+def rowcast_short_term_forecast_simple():
+    """Get simplified 15-minute interval rowcast forecast with just timestamps and scores"""
+    simple_short_term = get_data_from_redis('short_term_forecast_simple')
+    if simple_short_term:
+        return jsonify(simple_short_term)
+    return jsonify({"error": "Simple short-term forecast scores not available yet."}), 404
+
+@bp.route("/")
+@bp.route("/docs")
+@bp.route("/api")
+def api_documentation():
+    """API Documentation - Shows all available endpoints and usage"""
+    docs = {
+        "title": "RowCast API Documentation",
+        "description": "API for rowing condition scores based on weather, water conditions, and safety factors",
+        "timezone": "America/New_York (EST/EDT)",
+        "version": "1.0",
+        "endpoints": {
+            "current_conditions": {
+                "/api/weather": "Current weather data",
+                "/api/weather/current": "Current weather only",
+                "/api/water": "Current water data with historical",
+                "/api/water/current": "Current water conditions only",
+                "/api/rowcast": "Current rowcast score with conditions"
+            },
+            "forecasts": {
+                "/api/weather/forecast": "Weather forecast (24 hours, hourly)",
+                "/api/rowcast/forecast": "Detailed rowcast forecast (24 hours, hourly)",
+                "/api/rowcast/forecast/simple": "Simple rowcast forecast - timestamps and scores only",
+                "/api/rowcast/forecast/short-term": "Detailed 15-minute forecast (3 hours)",
+                "/api/rowcast/forecast/short-term/simple": "Simple 15-minute forecast - timestamps and scores only"
+            },
+            "time_based_queries": {
+                "/api/rowcast/forecast/<time_offset>": {
+                    "description": "Get forecast for specific time offset from now",
+                    "examples": [
+                        "/api/rowcast/forecast/2h - 2 hours from now",
+                        "/api/rowcast/forecast/30m - 30 minutes from now", 
+                        "/api/rowcast/forecast/1d - 1 day from now"
+                    ]
+                },
+                "/api/rowcast/at/<timestamp>": {
+                    "description": "Get forecast for specific timestamp",
+                    "format": "YYYY-MM-DDTHH:MM",
+                    "example": "/api/rowcast/at/2025-07-01T16:00"
+                }
+            },
+            "complete_data": {
+                "/api/complete": "All current data, forecasts, and scores in one response"
+            }
+        },
+        "scoring_factors": {
+            "weather": ["Temperature (74-85°F optimal)", "Wind speed/gusts", "Precipitation", "UV index", "Visibility"],
+            "water": ["Discharge/flow rate", "Water temperature", "Gauge height"],
+            "safety": ["Weather alerts", "Lightning potential", "Severe weather conditions"]
+        },
+        "score_range": "0-10 (10 = perfect conditions, 0 = dangerous/unsuitable)",
+        "data_updates": {
+            "weather": "Every 15 minutes",
+            "water": "Every 30 minutes", 
+            "forecasts": "Every hour"
+        },
+        "response_formats": {
+            "detailed": "Includes all conditions and parameters used in scoring",
+            "simple": "Timestamps and scores only for lightweight applications"
+        }
+    }
+    
+    return jsonify(docs)

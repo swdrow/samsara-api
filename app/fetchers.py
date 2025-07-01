@@ -20,9 +20,9 @@ def fetch_weather_data():
     url = (
         f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}"
         "&current=temperature_2m,apparent_temperature,wind_speed_10m,"  
-        "wind_direction_10m,wind_gusts_10m,precipitation,uv_index"
+        "wind_direction_10m,wind_gusts_10m,precipitation,uv_index,visibility"
         "&hourly=temperature_2m,apparent_temperature,wind_speed_10m,"
-        "wind_direction_10m,wind_gusts_10m,precipitation,uv_index"
+        "wind_direction_10m,wind_gusts_10m,precipitation,uv_index,visibility,precipitation_probability,lightning_potential"
         "&windspeed_unit=mph&temperature_unit=fahrenheit"
         "&timezone=America/New_York&forecast_days=2"
     )
@@ -38,6 +38,9 @@ def fetch_weather_data():
         logger.error(f"Failed to parse weather data JSON: {e}")
         raise Exception(f"Weather API returned invalid JSON: {e}")
     
+    # Fetch weather alerts from NWS API
+    alerts = fetch_weather_alerts(lat, lon)
+    
     try:
         # Current weather data
         current = data.get("current", {})
@@ -51,7 +54,9 @@ def fetch_weather_data():
             'uvIndex': current.get('uv_index'),
             'precipitation': current.get('precipitation'),
             'currentTemp': current.get('temperature_2m'),
-            'timestamp': current.get('time')
+            'visibility': current.get('visibility'),
+            'timestamp': current.get('time'),
+            'weatherAlerts': alerts  # Add active alerts
         }
         
         # Hourly forecast data (next 24 hours)
@@ -72,18 +77,69 @@ def fetch_weather_data():
                 'apparentTemp': hourly.get('apparent_temperature', [])[i] if i < len(hourly.get('apparent_temperature', [])) else None,
                 'uvIndex': hourly.get('uv_index', [])[i] if i < len(hourly.get('uv_index', [])) else None,
                 'precipitation': hourly.get('precipitation', [])[i] if i < len(hourly.get('precipitation', [])) else None,
-                'currentTemp': hourly.get('temperature_2m', [])[i] if i < len(hourly.get('temperature_2m', [])) else None
+                'currentTemp': hourly.get('temperature_2m', [])[i] if i < len(hourly.get('temperature_2m', [])) else None,
+                'visibility': hourly.get('visibility', [])[i] if i < len(hourly.get('visibility', [])) else None,
+                'precipitationProbability': hourly.get('precipitation_probability', [])[i] if i < len(hourly.get('precipitation_probability', [])) else None,
+                'lightningPotential': hourly.get('lightning_potential', [])[i] if i < len(hourly.get('lightning_potential', [])) else None,
+                'weatherAlerts': alerts  # Include alerts for each forecast hour
             }
             forecast.append(forecast_hour)
         
-        logger.info(f"Successfully fetched weather data with {len(forecast)} forecast hours")
+        logger.info(f"Successfully fetched weather data with {len(forecast)} forecast hours and {len(alerts)} active alerts")
         return {
             'current': current_weather,
-            'forecast': forecast
+            'forecast': forecast,
+            'alerts': alerts
         }
     except Exception as e:
         logger.error(f"Failed to process weather data: {e}")
         raise Exception(f"Weather data processing failed: {e}")
+
+def fetch_weather_alerts(lat, lon):
+    """Fetch active weather alerts from NWS API for the given coordinates."""
+    try:
+        # Get the NWS grid point for the coordinates
+        grid_url = f"https://api.weather.gov/points/{lat},{lon}"
+        grid_response = requests.get(grid_url, timeout=10)
+        grid_response.raise_for_status()
+        grid_data = grid_response.json()
+        
+        # Get the zone and county for alerts
+        zone = grid_data.get('properties', {}).get('forecastZone', '').split('/')[-1]
+        county = grid_data.get('properties', {}).get('county', '').split('/')[-1]
+        
+        alerts = []
+        
+        # Fetch zone-based alerts
+        if zone:
+            zone_alerts_url = f"https://api.weather.gov/alerts/active/zone/{zone}"
+            try:
+                zone_response = requests.get(zone_alerts_url, timeout=10)
+                zone_response.raise_for_status()
+                zone_data = zone_response.json()
+                
+                for feature in zone_data.get('features', []):
+                    props = feature.get('properties', {})
+                    alert = {
+                        'type': props.get('event'),
+                        'severity': props.get('severity'),
+                        'urgency': props.get('urgency'),
+                        'certainty': props.get('certainty'),
+                        'headline': props.get('headline'),
+                        'description': props.get('description'),
+                        'instruction': props.get('instruction'),
+                        'onset': props.get('onset'),
+                        'expires': props.get('expires')
+                    }
+                    alerts.append(alert)
+            except Exception as e:
+                logger.warning(f"Failed to fetch zone alerts: {e}")
+        
+        return alerts
+        
+    except Exception as e:
+        logger.warning(f"Failed to fetch weather alerts: {e}")
+        return []
 
 def fetch_water_data_with_history():
     """Fetches current and historical water data from the USGS API for trend analysis."""
@@ -264,3 +320,73 @@ def fetch_water_data():
     except Exception as e:
         logger.error(f"Failed to process water data: {e}")
         raise Exception(f"Water data processing failed: {e}")
+
+def fetch_short_term_forecast():
+    """Fetches 15-minute interval weather data for the next 3 hours."""
+    logger.info("FETCHER: Calling Open-Meteo API for 15-minute forecast...")
+    lat, lon = 39.8682, -75.5916
+    url = (
+        f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}"
+        "&minutely_15=temperature_2m,apparent_temperature,wind_speed_10m,"
+        "wind_direction_10m,wind_gusts_10m,precipitation,precipitation_probability,visibility"
+        "&windspeed_unit=mph&temperature_unit=fahrenheit"
+        "&timezone=America/New_York&forecast_hours=3"
+    )
+    
+    try:
+        response = requests.get(url, timeout=30)
+        response.raise_for_status()
+        data = response.json()
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Failed to fetch 15-minute forecast data: {e}")
+        raise Exception(f"15-minute forecast API request failed: {e}")
+    except json.JSONDecodeError as e:
+        logger.error(f"Failed to parse 15-minute forecast JSON: {e}")
+        raise Exception(f"15-minute forecast API returned invalid JSON: {e}")
+    
+    try:
+        # Get current water data for the short-term projections
+        from app.extensions import redis_client
+        water_data_str = redis_client.get('water_data')
+        water_data = json.loads(water_data_str) if water_data_str else {}
+        current_water = water_data.get('current', {})
+        
+        # 15-minute forecast data
+        minutely = data.get("minutely_15", {})
+        times = minutely.get('time', [])
+        forecast = []
+        
+        # Process next 3 hours (12 x 15-minute intervals)
+        for i in range(min(12, len(times))):
+            deg_forecast = minutely.get('wind_direction_10m', [])[i] if i < len(minutely.get('wind_direction_10m', [])) else None
+            wind_dir_forecast = f"{deg_to_cardinal(deg_forecast)} ({fmt(deg_forecast, 0, '°')})" if deg_forecast is not None else "N/A"
+            
+            forecast_interval = {
+                'timestamp': times[i],
+                'windSpeed': minutely.get('wind_speed_10m', [])[i] if i < len(minutely.get('wind_speed_10m', [])) else None,
+                'windGust': minutely.get('wind_gusts_10m', [])[i] if i < len(minutely.get('wind_gusts_10m', [])) else None,
+                'windDir': wind_dir_forecast,
+                'apparentTemp': minutely.get('apparent_temperature', [])[i] if i < len(minutely.get('apparent_temperature', [])) else None,
+                'precipitation': minutely.get('precipitation', [])[i] if i < len(minutely.get('precipitation', [])) else None,
+                'currentTemp': minutely.get('temperature_2m', [])[i] if i < len(minutely.get('temperature_2m', [])) else None,
+                'visibility': minutely.get('visibility', [])[i] if i < len(minutely.get('visibility', [])) else None,
+                'precipitationProbability': minutely.get('precipitation_probability', [])[i] if i < len(minutely.get('precipitation_probability', [])) else None,
+                # Use current water values for short-term forecast
+                'discharge': current_water.get('discharge'),
+                'waterTemp': current_water.get('waterTemp'),
+                'gaugeHeight': current_water.get('gaugeHeight'),
+                'uvIndex': 0,  # UV not available in 15-min data, default to 0 for short term
+                'lightningPotential': 0,  # Lightning not available in 15-min data
+                'weatherAlerts': []  # Use current alerts
+            }
+            forecast.append(forecast_interval)
+        
+        logger.info(f"Successfully fetched 15-minute forecast data with {len(forecast)} intervals")
+        return {
+            'forecast': forecast,
+            'interval': '15min',
+            'duration': '3hours'
+        }
+    except Exception as e:
+        logger.error(f"Failed to process 15-minute forecast data: {e}")
+        raise Exception(f"15-minute forecast data processing failed: {e}")

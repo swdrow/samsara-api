@@ -17,8 +17,10 @@ def create_app():
         redis_client.ping()
         print("Successfully connected to Redis!")
     except redis.exceptions.ConnectionError as e: # This will now work correctly
-        print(f"Could not connect to Redis: {e}")
-        pass
+        error_message = f"Could not connect to Redis: {e}"
+        print(error_message)
+        # Raise an exception to prevent the app from starting with a failed Redis connection:
+        raise Exception(error_message)
 
     # --- Register Blueprints ---
     app.register_blueprint(bp)
@@ -27,7 +29,7 @@ def create_app():
     # Import tasks here, inside the factory, to ensure the app context is available
     # and to avoid circular imports.
     with app.app_context():
-        from app.tasks import update_weather_data_job, update_water_data_job, update_forecast_scores_job
+        from app.tasks import update_weather_data_job, update_water_data_job, update_forecast_scores_job, update_short_term_forecast_job
 
         if not scheduler.running:
             scheduler.init_app(app) # Initialize scheduler with the app
@@ -55,5 +57,16 @@ def create_app():
             trigger='interval',
             minutes=10  # Calculate forecast scores after data updates
         )
+        scheduler.add_job(
+            id='Update Short-term Forecast',
+            func=update_short_term_forecast_job,
+            trigger='interval',
+            minutes=5  # Update 15-minute forecast more frequently
+        )
+        # Run initial data fetch and forecasting immediately
+        update_weather_data_job()
+        update_water_data_job()
+        update_forecast_scores_job()
+        update_short_term_forecast_job()
 
     return app

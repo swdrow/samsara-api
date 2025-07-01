@@ -1,0 +1,19 @@
+/etc/timezone is deprecated on Debian, and no longer reliable. Ignoring.
+INFO:apscheduler.scheduler:Scheduler started
+INFO:apscheduler.scheduler:Added job "Update Weather Data" to job store "default"
+INFO:apscheduler.scheduler:Added job "Update Water Data" to job store "default"
+INFO:apscheduler.scheduler:Added job "Update Forecast Scores" to job store "default"
+INFO:apscheduler.scheduler:Added job "Update Short-term Forecast" to job store "default"
+INFO:app.fetchers:FETCHER: Calling Open-Meteo API...
+INFO:app.fetchers:Successfully fetched weather data with 24 forecast hours and 1 active alerts
+INFO:app.fetchers:FETCHER: Calling USGS Water Services API with historical data...
+INFO:app.fetchers:Successfully fetched water data with historical trends
+INFO:app.fetchers:FETCHER: Calling Open-Meteo API for 15-minute forecast...
+INFO:app.fetchers:Successfully fetched 15-minute forecast data with 12 intervals
+[2025-07-01 13:37:44 +0000] [2705397] [INFO] Starting gunicorn 23.0.0
+[2025-07-01 13:37:44 +0000] [2705397] [INFO] Listening at: http://0.0.0.0:5000 (2705397)
+[2025-07-01 13:37:44 +0000] [2705397] [INFO] Using worker: gthread
+[2025-07-01 13:37:44 +0000] [2705526] [INFO] Booting worker with pid: 2705526
+127.0.0.1 - - [01/Jul/2025:13:38:07 +0000] "GET /docs HTTP/1.1" 200 2011 "-" "curl/8.12.1"
+127.0.0.1 - - [01/Jul/2025:13:38:16 +0000] "GET /api/rowcast/forecast/simple HTTP/1.1" 200 1103 "-" "curl/8.12.1"
+127.0.0.1 - - [01/Jul/2025:13:38:41 +0000] "GET /api/rowcast/forecast/short-term/simple HTTP/1.1" 200 553 "-" "curl/8.12.1"
