@@ -29,7 +29,7 @@ def create_app():
     # Import tasks here, inside the factory, to ensure the app context is available
     # and to avoid circular imports.
     with app.app_context():
-        from app.tasks import update_weather_data_job, update_water_data_job, update_forecast_scores_job, update_short_term_forecast_job
+        from app.tasks import update_weather_data_job, update_water_data_job, update_forecast_scores_job, update_short_term_forecast_job, update_noaa_stageflow_job, update_extended_weather_data_job, update_extended_forecast_scores_job
 
         if not scheduler.running:
             scheduler.init_app(app) # Initialize scheduler with the app
@@ -63,10 +63,31 @@ def create_app():
             trigger='interval',
             minutes=5  # Update 15-minute forecast more frequently
         )
+        scheduler.add_job(
+            id='Update NOAA Stageflow Data',
+            func=update_noaa_stageflow_job,
+            trigger='interval',
+            minutes=30  # NOAA data updates less frequently
+        )
+        scheduler.add_job(
+            id='Update Extended Weather Data',
+            func=update_extended_weather_data_job,
+            trigger='interval',
+            minutes=60  # Extended weather data updates hourly
+        )
+        scheduler.add_job(
+            id='Update Extended Forecast Scores',
+            func=update_extended_forecast_scores_job,
+            trigger='interval',
+            minutes=30  # Calculate extended forecast scores after NOAA updates
+        )
         # Run initial data fetch and forecasting immediately
         update_weather_data_job()
         update_water_data_job()
+        update_noaa_stageflow_job()
+        update_extended_weather_data_job()
         update_forecast_scores_job()
+        update_extended_forecast_scores_job()
         update_short_term_forecast_job()
 
     return app

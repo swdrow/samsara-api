@@ -55,5 +55,28 @@ def test_rowcast_forecast():
 def test_complete_data():
     test_endpoint("/complete", "Complete Data")
 
+def test_noaa_stageflow_full():
+    data = test_endpoint("/noaa/stageflow", "NOAA Stageflow Data (Full)")
+    assert "current" in data and "forecast" in data
+
+def test_noaa_stageflow_current():
+    test_endpoint("/noaa/stageflow/current", "Current NOAA Stageflow")
+
+def test_noaa_stageflow_forecast():
+    test_endpoint("/noaa/stageflow/forecast", "NOAA Stageflow Forecast")
+
+def test_weather_extended():
+    test_endpoint("/weather/extended", "Extended Weather Forecast")
+
+def test_rowcast_forecast_extended():
+    test_endpoint("/rowcast/forecast/extended", "Extended RowCast Forecast")
+
+def test_rowcast_forecast_extended_simple():
+    test_endpoint("/rowcast/forecast/extended/simple", "Extended RowCast Forecast (Simple)")
+
+def test_complete_extended():
+    data = test_endpoint("/complete/extended", "Complete Extended Data")
+    assert "weather" in data and "water" in data and "noaa" in data and "rowcast" in data
+
 if __name__ == "__main__":
     pytest.main([__file__])

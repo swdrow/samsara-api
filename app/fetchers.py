@@ -390,3 +390,246 @@ def fetch_short_term_forecast():
     except Exception as e:
         logger.error(f"Failed to process 15-minute forecast data: {e}")
         raise Exception(f"15-minute forecast data processing failed: {e}")
+
+def fetch_noaa_stageflow_forecast():
+    """Fetches stage and flow forecast data from NOAA NWPS API with interpolation for hourly intervals."""
+    logger.info("FETCHER: Calling NOAA NWPS API for stageflow forecast...")
+    
+    try:
+        url = "https://api.water.noaa.gov/nwps/v1/gauges/padp1/stageflow"
+        response = requests.get(url, timeout=30)
+        response.raise_for_status()
+        data = response.json()
+        
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Failed to fetch NOAA stageflow data: {e}")
+        raise Exception(f"NOAA NWPS API request failed: {e}")
+    except json.JSONDecodeError as e:
+        logger.error(f"Failed to parse NOAA stageflow JSON: {e}")
+        raise Exception(f"NOAA NWPS API returned invalid JSON: {e}")
+    
+    try:
+        # Extract observed and forecast data
+        observed_data = data.get('observed', {}).get('data', [])
+        forecast_data = data.get('forecast', {}).get('data', [])
+        
+        # Process current/latest observed data
+        current_observed = None
+        if observed_data:
+            latest = observed_data[-1]  # Most recent observation
+            current_observed = {
+                'timestamp': latest.get('validTime'),
+                'gaugeHeight': latest.get('primary'),  # Stage in feet
+                'discharge': latest.get('secondary') * 1000 if latest.get('secondary') else None,  # Convert kcfs to cfs
+                'generatedTime': latest.get('generatedTime')
+            }
+        
+        # Process forecast data and interpolate to hourly intervals
+        hourly_forecast = []
+        
+        if forecast_data and len(forecast_data) >= 2:
+            # Sort forecast data by timestamp
+            sorted_forecast = sorted(forecast_data, key=lambda x: x.get('validTime', ''))
+            
+            # Get the time range for interpolation
+            start_time = datetime.fromisoformat(sorted_forecast[0]['validTime'].replace('Z', '+00:00'))
+            end_time = datetime.fromisoformat(sorted_forecast[-1]['validTime'].replace('Z', '+00:00'))
+            
+            # Generate hourly timestamps from start to end
+            current_hour = start_time.replace(minute=0, second=0, microsecond=0)
+            
+            while current_hour <= end_time:
+                # Find the two forecast points that bracket this hour
+                interpolated_values = interpolate_forecast_values(sorted_forecast, current_hour)
+                
+                if interpolated_values:
+                    hourly_forecast.append({
+                        'timestamp': current_hour.isoformat().replace('+00:00', 'Z'),
+                        'gaugeHeight': interpolated_values['stage'],
+                        'discharge': interpolated_values['flow'] * 1000 if interpolated_values['flow'] else None,  # Convert kcfs to cfs
+                        'source': 'noaa_nwps_interpolated'
+                    })
+                
+                current_hour += timedelta(hours=1)
+        
+        logger.info(f"Successfully processed NOAA stageflow data: {len(observed_data)} observed points, {len(forecast_data)} forecast points, {len(hourly_forecast)} interpolated hours")
+        
+        return {
+            'current': current_observed,
+            'observed': observed_data[-24:] if len(observed_data) >= 24 else observed_data,  # Last 24 observations
+            'forecast': hourly_forecast,
+            'raw_forecast': forecast_data,
+            'metadata': {
+                'issuedTime': data.get('forecast', {}).get('issuedTime'),
+                'wfo': data.get('forecast', {}).get('wfo'),
+                'timeZone': data.get('forecast', {}).get('timeZone'),
+                'primaryName': data.get('forecast', {}).get('primaryName'),
+                'primaryUnits': data.get('forecast', {}).get('primaryUnits'),
+                'secondaryName': data.get('forecast', {}).get('secondaryName'),
+                'secondaryUnits': data.get('forecast', {}).get('secondaryUnits')
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to process NOAA stageflow data: {e}")
+        raise Exception(f"NOAA stageflow data processing failed: {e}")
+
+def interpolate_forecast_values(forecast_data, target_time):
+    """Interpolate stage and flow values for a specific time between forecast points."""
+    try:
+        # Find the two points that bracket the target time
+        before_point = None
+        after_point = None
+        
+        target_timestamp = target_time.timestamp()
+        
+        for i, point in enumerate(forecast_data):
+            point_time = datetime.fromisoformat(point['validTime'].replace('Z', '+00:00')).timestamp()
+            
+            if point_time <= target_timestamp:
+                before_point = point
+            elif point_time > target_timestamp and after_point is None:
+                after_point = point
+                break
+        
+        # If we can't find suitable points, return None
+        if not before_point or not after_point:
+            # If target is before all points, use first point
+            if not before_point and after_point:
+                return {
+                    'stage': after_point.get('primary'),
+                    'flow': after_point.get('secondary')
+                }
+            # If target is after all points, use last point
+            elif before_point and not after_point:
+                return {
+                    'stage': before_point.get('primary'),
+                    'flow': before_point.get('secondary')
+                }
+            return None
+        
+        # Linear interpolation
+        before_timestamp = datetime.fromisoformat(before_point['validTime'].replace('Z', '+00:00')).timestamp()
+        after_timestamp = datetime.fromisoformat(after_point['validTime'].replace('Z', '+00:00')).timestamp()
+        
+        # Avoid division by zero
+        time_diff = after_timestamp - before_timestamp
+        if time_diff == 0:
+            return {
+                'stage': before_point.get('primary'),
+                'flow': before_point.get('secondary')
+            }
+        
+        # Calculate interpolation factor
+        factor = (target_timestamp - before_timestamp) / time_diff
+        
+        # Interpolate stage (primary)
+        before_stage = before_point.get('primary')
+        after_stage = after_point.get('primary')
+        interpolated_stage = None
+        if before_stage is not None and after_stage is not None:
+            interpolated_stage = before_stage + factor * (after_stage - before_stage)
+        
+        # Interpolate flow (secondary)
+        before_flow = before_point.get('secondary')
+        after_flow = after_point.get('secondary')
+        interpolated_flow = None
+        if before_flow is not None and after_flow is not None:
+            interpolated_flow = before_flow + factor * (after_flow - before_flow)
+        
+        return {
+            'stage': interpolated_stage,
+            'flow': interpolated_flow
+        }
+        
+    except Exception as e:
+        logger.warning(f"Failed to interpolate forecast values: {e}")
+        return None
+
+def fetch_extended_weather_forecast():
+    """Fetches extended weather forecast to match NOAA stageflow forecast duration."""
+    logger.info("FETCHER: Calling Open-Meteo API for extended forecast...")
+    lat, lon = 39.8682, -75.5916
+    
+    # Determine how many days we need based on NOAA forecast
+    # NOAA typically provides ~5-7 days, so we'll request 7 days to be safe
+    forecast_days = 7
+    
+    url = (
+        f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}"
+        "&current=temperature_2m,apparent_temperature,wind_speed_10m,"  
+        "wind_direction_10m,wind_gusts_10m,precipitation,uv_index,visibility"
+        "&hourly=temperature_2m,apparent_temperature,wind_speed_10m,"
+        "wind_direction_10m,wind_gusts_10m,precipitation,uv_index,visibility,precipitation_probability,lightning_potential"
+        "&windspeed_unit=mph&temperature_unit=fahrenheit"
+        f"&timezone=America/New_York&forecast_days={forecast_days}"
+    )
+    
+    try:
+        response = requests.get(url, timeout=30)
+        response.raise_for_status()
+        data = response.json()
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Failed to fetch extended weather data: {e}")
+        raise Exception(f"Extended weather API request failed: {e}")
+    except json.JSONDecodeError as e:
+        logger.error(f"Failed to parse extended weather data JSON: {e}")
+        raise Exception(f"Extended weather API returned invalid JSON: {e}")
+    
+    # Fetch weather alerts from NWS API
+    alerts = fetch_weather_alerts(lat, lon)
+    
+    try:
+        # Current weather data
+        current = data.get("current", {})
+        deg = current.get('wind_direction_10m')
+        wind_dir = f"{deg_to_cardinal(deg)} ({fmt(deg, 0, '°')})" if deg is not None else "N/A"
+        current_weather = {
+            'windSpeed': current.get('wind_speed_10m'),
+            'windGust': current.get('wind_gusts_10m'),
+            'windDir': wind_dir,
+            'apparentTemp': current.get('apparent_temperature'),
+            'uvIndex': current.get('uv_index'),
+            'precipitation': current.get('precipitation'),
+            'currentTemp': current.get('temperature_2m'),
+            'visibility': current.get('visibility'),
+            'timestamp': current.get('time'),
+            'weatherAlerts': alerts
+        }
+        
+        # Extended hourly forecast data
+        hourly = data.get("hourly", {})
+        times = hourly.get('time', [])
+        forecast = []
+        
+        # Process all available forecast hours
+        for i in range(len(times)):
+            deg_forecast = hourly.get('wind_direction_10m', [])[i] if i < len(hourly.get('wind_direction_10m', [])) else None
+            wind_dir_forecast = f"{deg_to_cardinal(deg_forecast)} ({fmt(deg_forecast, 0, '°')})" if deg_forecast is not None else "N/A"
+            
+            forecast_hour = {
+                'timestamp': times[i],
+                'windSpeed': hourly.get('wind_speed_10m', [])[i] if i < len(hourly.get('wind_speed_10m', [])) else None,
+                'windGust': hourly.get('wind_gusts_10m', [])[i] if i < len(hourly.get('wind_gusts_10m', [])) else None,
+                'windDir': wind_dir_forecast,
+                'apparentTemp': hourly.get('apparent_temperature', [])[i] if i < len(hourly.get('apparent_temperature', [])) else None,
+                'uvIndex': hourly.get('uv_index', [])[i] if i < len(hourly.get('uv_index', [])) else None,
+                'precipitation': hourly.get('precipitation', [])[i] if i < len(hourly.get('precipitation', [])) else None,
+                'currentTemp': hourly.get('temperature_2m', [])[i] if i < len(hourly.get('temperature_2m', [])) else None,
+                'visibility': hourly.get('visibility', [])[i] if i < len(hourly.get('visibility', [])) else None,
+                'precipitationProbability': hourly.get('precipitation_probability', [])[i] if i < len(hourly.get('precipitation_probability', [])) else None,
+                'lightningPotential': hourly.get('lightning_potential', [])[i] if i < len(hourly.get('lightning_potential', [])) else None,
+                'weatherAlerts': alerts
+            }
+            forecast.append(forecast_hour)
+        
+        logger.info(f"Successfully fetched extended weather data with {len(forecast)} forecast hours and {len(alerts)} active alerts")
+        return {
+            'current': current_weather,
+            'forecast': forecast,
+            'alerts': alerts,
+            'forecastDays': forecast_days
+        }
+    except Exception as e:
+        logger.error(f"Failed to process extended weather data: {e}")
+        raise Exception(f"Extended weather data processing failed: {e}")
