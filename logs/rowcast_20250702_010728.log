@@ -1,0 +1,33 @@
+/etc/timezone is deprecated on Debian, and no longer reliable. Ignoring.
+INFO:apscheduler.scheduler:Scheduler started
+INFO:apscheduler.scheduler:Added job "Update Weather Data" to job store "default"
+INFO:apscheduler.scheduler:Added job "Update Water Data" to job store "default"
+INFO:apscheduler.scheduler:Added job "Update Forecast Scores" to job store "default"
+INFO:apscheduler.scheduler:Added job "Update Short-term Forecast" to job store "default"
+INFO:app.fetchers:FETCHER: Calling Open-Meteo API...
+INFO:app.fetchers:Successfully fetched weather data with 24 forecast hours and 1 active alerts
+INFO:app.fetchers:FETCHER: Calling USGS Water Services API with historical data...
+INFO:app.fetchers:Successfully fetched water data with historical trends
+INFO:app.fetchers:FETCHER: Calling Open-Meteo API for 15-minute forecast...
+INFO:app.fetchers:Successfully fetched 15-minute forecast data with 12 intervals
+[2025-07-02 01:07:31 +0000] [3940465] [INFO] Starting gunicorn 23.0.0
+[2025-07-02 01:07:31 +0000] [3940465] [ERROR] Connection in use: ('0.0.0.0', 5000)
+[2025-07-02 01:07:31 +0000] [3940465] [ERROR] connection to ('0.0.0.0', 5000) failed: [Errno 98] Address already in use
+[2025-07-02 01:07:32 +0000] [3940465] [ERROR] Connection in use: ('0.0.0.0', 5000)
+[2025-07-02 01:07:32 +0000] [3940465] [ERROR] connection to ('0.0.0.0', 5000) failed: [Errno 98] Address already in use
+[2025-07-02 01:07:33 +0000] [3940465] [ERROR] Connection in use: ('0.0.0.0', 5000)
+[2025-07-02 01:07:33 +0000] [3940465] [ERROR] connection to ('0.0.0.0', 5000) failed: [Errno 98] Address already in use
+[2025-07-02 01:07:34 +0000] [3940465] [ERROR] Connection in use: ('0.0.0.0', 5000)
+[2025-07-02 01:07:34 +0000] [3940465] [ERROR] connection to ('0.0.0.0', 5000) failed: [Errno 98] Address already in use
+[2025-07-02 01:07:35 +0000] [3940465] [ERROR] Connection in use: ('0.0.0.0', 5000)
+[2025-07-02 01:07:35 +0000] [3940465] [ERROR] connection to ('0.0.0.0', 5000) failed: [Errno 98] Address already in use
+[2025-07-02 01:07:36 +0000] [3940465] [ERROR] Can't connect to ('0.0.0.0', 5000)
+Successfully connected to Redis!
+SCHEDULER JOB: Running weather data update...
+SCHEDULER JOB: Weather data updated successfully.
+SCHEDULER JOB: Running water data update...
+SCHEDULER JOB: Water data updated successfully.
+SCHEDULER JOB: Running forecast scores update...
+SCHEDULER JOB: Forecast scores updated successfully.
+SCHEDULER JOB: Running short-term forecast scores update...
+SCHEDULER JOB: Short-term forecast scores updated successfully with 12 intervals.

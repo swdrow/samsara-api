@@ -1,0 +1,40 @@
+/etc/timezone is deprecated on Debian, and no longer reliable. Ignoring.
+INFO:apscheduler.scheduler:Scheduler started
+INFO:apscheduler.scheduler:Added job "Update Weather Data" to job store "default"
+INFO:apscheduler.scheduler:Added job "Update Water Data" to job store "default"
+INFO:apscheduler.scheduler:Added job "Update Forecast Scores" to job store "default"
+INFO:apscheduler.scheduler:Added job "Update Short-term Forecast" to job store "default"
+INFO:app.fetchers:FETCHER: Calling Open-Meteo API...
+INFO:app.fetchers:Successfully fetched weather data with 24 forecast hours and 1 active alerts
+INFO:app.fetchers:FETCHER: Calling USGS Water Services API with historical data...
+INFO:app.fetchers:Successfully fetched water data with historical trends
+INFO:app.fetchers:FETCHER: Calling Open-Meteo API for 15-minute forecast...
+INFO:app.fetchers:Successfully fetched 15-minute forecast data with 12 intervals
+[2025-07-02 01:10:07 +0000] [3945400] [INFO] Starting gunicorn 23.0.0
+[2025-07-02 01:10:07 +0000] [3945400] [INFO] Listening at: http://0.0.0.0:5000 (3945400)
+[2025-07-02 01:10:07 +0000] [3945400] [INFO] Using worker: gthread
+[2025-07-02 01:10:07 +0000] [3945507] [INFO] Booting worker with pid: 3945507
+127.0.0.1 - - [02/Jul/2025:01:10:17 +0000] "GET /docs HTTP/1.1" 200 2180 "-" "curl/8.12.1"
+127.0.0.1 - - [02/Jul/2025:01:10:25 +0000] "GET /documentation?id=5bdc4c52-6077-4dcd-b43c-a4b0f236d3af&vscodeBrowserReqId=1751418625569 HTTP/1.1" 200 15944 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.101.2 Chrome/134.0.6998.205 Electron/35.5.1 Safari/537.36"
+127.0.0.1 - - [02/Jul/2025:01:12:19 +0000] "GET /api/rowcast HTTP/1.1" 200 1883 "http://localhost:5000/documentation" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0"
+[2025-07-02 01:14:18 +0000] [3945400] [INFO] Handling signal: term
+[2025-07-02 01:14:19 +0000] [3945507] [INFO] Worker exiting (pid: 3945507)
+Successfully connected to Redis!
+SCHEDULER JOB: Running weather data update...
+SCHEDULER JOB: Weather data updated successfully.
+SCHEDULER JOB: Running water data update...
+SCHEDULER JOB: Water data updated successfully.
+SCHEDULER JOB: Running forecast scores update...
+SCHEDULER JOB: Forecast scores updated successfully.
+SCHEDULER JOB: Running short-term forecast scores update...
+SCHEDULER JOB: Short-term forecast scores updated successfully with 12 intervals.
+[2025-07-02 01:14:19 +0000] [3945400] [INFO] Shutting down: Master
+Successfully connected to Redis!
+SCHEDULER JOB: Running weather data update...
+SCHEDULER JOB: Weather data updated successfully.
+SCHEDULER JOB: Running water data update...
+SCHEDULER JOB: Water data updated successfully.
+SCHEDULER JOB: Running forecast scores update...
+SCHEDULER JOB: Forecast scores updated successfully.
+SCHEDULER JOB: Running short-term forecast scores update...
+SCHEDULER JOB: Short-term forecast scores updated successfully with 12 intervals.
