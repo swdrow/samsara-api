@@ -30,7 +30,7 @@ sleep 1
 
 # Start server with nohup
 nohup gunicorn wsgi:app \
-  --bind 0.0.0.0:5000 \
+  --bind 0.0.0.0:8000 \
   --workers 1 \
   --threads 4 \
   --timeout 120 \
@@ -53,8 +53,8 @@ echo "To stop server: ./stop_server.sh"
 sleep 3
 if ps -p "$PID" > /dev/null 2>&1; then
     echo "✅ Server is running successfully!"
-    echo "API available at: http://localhost:5000"
-    echo "Documentation: http://localhost:5000/docs"
+    echo "API available at: http://localhost:8000"
+    echo "Documentation: http://localhost:8000/docs"
 else
     echo "❌ Server failed to start. Check logs: $LOG_FILE"
     exit 1

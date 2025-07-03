@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard Debug Test</title>
+</head>
+<body>
+    <h1>Dashboard Debug Test</h1>
+    <div id="current-score">Loading...</div>
+    <div id="score-fill" style="background: blue; height: 20px; width: 0%;"></div>
+    <div id="forecast-grid">Loading forecast...</div>
+    
+    <script>
+        // Test the API directly
+        fetch('http://localhost:5000/api/complete')
+            .then(response => {
+                console.log('API Response status:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('API Data:', data);
+                
+                // Test score update
+                const score = data.current.rowcastScore || 0;
+                document.getElementById('current-score').textContent = score.toFixed(1);
+                document.getElementById('score-fill').style.width = `${(score / 10) * 100}%`;
+                
+                // Test forecast
+                if (data.forecast && data.forecast.rowcastScores) {
+                    const forecastContainer = document.getElementById('forecast-grid');
+                    forecastContainer.innerHTML = `Found ${data.forecast.rowcastScores.length} forecast items`;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('current-score').textContent = 'ERROR';
+                document.getElementById('forecast-grid').textContent = 'ERROR: ' + error.message;
+            });
+    </script>
+</body>
+</html>

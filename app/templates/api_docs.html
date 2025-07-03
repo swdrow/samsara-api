@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RowCast API Documentation</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .docs-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            background-color: var(--bg-primary);
+            min-height: 100vh;
+        }
+        
+        .docs-header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding: 2rem 0;
+            background: var(--gradient-secondary);
+            border-radius: 1rem;
+            border: 1px solid var(--border-color);
+        }
+        
+        .docs-header h1 {
+            color: var(--accent-tertiary);
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .docs-header p {
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+        }
+        
+        .base-url {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin: 1rem 0;
+            font-family: 'Courier New', monospace;
+            color: var(--accent-tertiary);
+            text-align: center;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        
+        .endpoint-section {
+            margin-bottom: 3rem;
+            background: var(--bg-secondary);
+            border-radius: 1rem;
+            padding: 2rem;
+            border: 1px solid var(--border-color);
+        }
+        
+        .section-title {
+            color: var(--text-primary);
+            font-size: 1.75rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--accent-primary);
+        }
+        
+        .endpoint-card {
+            background: var(--bg-tertiary);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border-left: 4px solid var(--accent-primary);
+            transition: all 0.3s ease;
+        }
+        
+        .endpoint-card:hover {
+            background: var(--bg-quaternary);
+            transform: translateX(4px);
+        }
+        
+        .endpoint-method {
+            display: inline-block;
+            background: var(--success-color);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 0.75rem;
+        }
+        
+        .endpoint-path {
+            font-family: 'Courier New', monospace;
+            font-size: 1.1rem;
+            color: var(--accent-tertiary);
+            margin-bottom: 1rem;
+            word-break: break-all;
+        }
+        
+        .endpoint-path a {
+            color: var(--accent-tertiary);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        
+        .endpoint-path a:hover {
+            color: var(--accent-primary);
+            text-decoration: underline;
+        }
+        
+        .endpoint-description {
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            line-height: 1.6;
+        }
+        
+        .endpoint-example {
+            background: var(--bg-primary);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+            overflow-x: auto;
+            border: 1px solid var(--border-color);
+        }
+        
+        .endpoint-example h4 {
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .code-block {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin: 1rem 0;
+            overflow-x: auto;
+        }
+        
+        .code-block pre {
+            margin: 0;
+            color: var(--text-primary);
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+        }
+        
+        .parameter-list {
+            background: var(--bg-quaternary);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        
+        .parameter-list h4 {
+            color: var(--text-primary);
+            margin-bottom: 0.75rem;
+        }
+        
+        .parameter-item {
+            margin-bottom: 0.5rem;
+        }
+        
+        .parameter-name {
+            color: var(--accent-tertiary);
+            font-weight: 600;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .parameter-description {
+            color: var(--text-secondary);
+            margin-left: 1rem;
+        }
+        
+        .navigation-menu {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            max-width: 200px;
+            z-index: 100;
+        }
+        
+        .nav-menu-title {
+            color: var(--text-primary);
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            font-size: 0.875rem;
+        }
+        
+        .nav-menu-item {
+            display: block;
+            color: var(--text-secondary);
+            text-decoration: none;
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            transition: all 0.3s ease;
+            font-size: 0.875rem;
+        }
+        
+        .nav-menu-item:hover {
+            background: var(--bg-tertiary);
+            color: var(--accent-tertiary);
+        }
+        
+        .back-to-dashboard {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--gradient-primary);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            margin-bottom: 2rem;
+        }
+        
+        .back-to-dashboard:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px var(--shadow);
+        }
+        
+        .status-codes {
+            margin-top: 1rem;
+        }
+        
+        .status-code {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin-right: 0.5rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        .status-200 {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success-color);
+        }
+        
+        .status-400 {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--warning-color);
+        }
+        
+        .status-404 {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger-color);
+        }
+        
+        .status-500 {
+            background: rgba(220, 53, 69, 0.2);
+            color: var(--danger-color);
+        }
+        
+        @media (max-width: 1024px) {
+            .navigation-menu {
+                position: static;
+                max-width: none;
+                margin-bottom: 2rem;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .docs-container {
+                padding: 1rem;
+            }
+            
+            .endpoint-path {
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="docs-container">
+        <a href="/dashboard" class="back-to-dashboard">
+            <i class="fas fa-arrow-left"></i>
+            Back to Dashboard
+        </a>
+        
+        <div class="navigation-menu">
+            <div class="nav-menu-title">Quick Navigation</div>
+            <a href="#overview" class="nav-menu-item">Overview</a>
+            <a href="#current-data" class="nav-menu-item">Current Data</a>
+            <a href="#forecasts" class="nav-menu-item">Forecasts</a>
+            <a href="#rowcast-scores" class="nav-menu-item">RowCast Scores</a>
+            <a href="#time-queries" class="nav-menu-item">Time Queries</a>
+            <a href="#complete-data" class="nav-menu-item">Complete Data</a>
+            <a href="#examples" class="nav-menu-item">Examples</a>
+        </div>
+        
+        <div class="docs-header">
+            <h1><i class="fas fa-water"></i> RowCast API Documentation</h1>
+            <p>Complete reference for rowing conditions API endpoints</p>
+            <div class="base-url">https://api.samwduncan.com</div>
+        </div>
+        
+        <section id="overview" class="endpoint-section">
+            <h2 class="section-title">Overview</h2>
+            <p class="endpoint-description">
+                The RowCast API provides comprehensive rowing condition data including current weather and water conditions, 
+                24-hour forecasts, extended forecasts, and intelligent scoring algorithms to help determine optimal rowing conditions.
+            </p>
+            
+            <div class="parameter-list">
+                <h4>Key Features:</h4>
+                <ul style="color: var(--text-secondary); margin-left: 1rem;">
+                    <li>Real-time weather and water condition data</li>
+                    <li>24-hour and extended forecasts</li>
+                    <li>RowCast scoring algorithm (0-10 scale)</li>
+                    <li>NOAA integration for enhanced water data</li>
+                    <li>Time-based queries for specific forecasts</li>
+                    <li>Safety alerts and weather warnings</li>
+                </ul>
+            </div>
+            
+            <div class="status-codes">
+                <span class="status-code status-200">200 OK</span>
+                <span class="status-code status-400">400 Bad Request</span>
+                <span class="status-code status-404">404 Not Found</span>
+                <span class="status-code status-500">500 Server Error</span>
+            </div>
+        </section>
+        
+        <section id="current-data" class="endpoint-section">
+            <h2 class="section-title">Current Data Endpoints</h2>
+            
+            <div class="endpoint-card">
+                <span class="endpoint-method">GET</span>
+                <div class="endpoint-path">
+                    <a href="https://api.samwduncan.com/api/rowcast" target="_blank">
+                        https://api.samwduncan.com/api/rowcast
+                    </a>
+                </div>
+                <div class="endpoint-description">
+                    Get the current RowCast score and all parameters used in the calculation.
+                </div>
+                <div class="endpoint-example">
+                    <h4>Response Example:</h4>
+                    <div class="code-block">
+                        <pre>{
+  "rowcastScore": 8.45,
+  "params": {
+    "windSpeed": 8.5,
+    "windGust": 12.3,
+    "apparentTemp": 75.2,
+    "uvIndex": 6,
+    "precipitation": 0.0,
+    "discharge": 850,
+    "waterTemp": 68.5,
+    "gaugeHeight": 2.34
+  }
+}</pre>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="endpoint-card">
+                <span class="endpoint-method">GET</span>
+                <div class="endpoint-path">
+                    <a href="https://api.samwduncan.com/api/weather/current" target="_blank">
+                        https://api.samwduncan.com/api/weather/current
+                    </a>
+                </div>
+                <div class="endpoint-description">
+                    Get current weather conditions including temperature, wind, UV index, and precipitation.
+                </div>
+            </div>
+            
+            <div class="endpoint-card">
+                <span class="endpoint-method">GET</span>
+                <div class="endpoint-path">
+                    <a href="https://api.samwduncan.com/api/water/current" target="_blank">
+                        https://api.samwduncan.com/api/water/current
+                    </a>
+                </div>
+                <div class="endpoint-description">
+                    Get current water conditions including flow rate, temperature, and gauge height.
+                </div>
+            </div>
+        </section>
+        
+        <section id="forecasts" class="endpoint-section">
+            <h2 class="section-title">Forecast Endpoints</h2>
+            
+            <div class="endpoint-card">
+                <span class="endpoint-method">GET</span>
+                <div class="endpoint-path">
+                    <a href="https://api.samwduncan.com/api/weather/forecast" target="_blank">
+                        https://api.samwduncan.com/api/weather/forecast
+                    </a>
+                </div>
+                <div class="endpoint-description">
+                    Get 24-hour weather forecast with hourly breakdowns.
+                </div>
+            </div>
+            
+            <div class="endpoint-card">
+                <span class="endpoint-method">GET</span>
+                <div class="endpoint-path">
+                    <a href="https://api.samwduncan.com/api/water/predictions" target="_blank">
+                        https://api.samwduncan.com/api/water/predictions
+                    </a>
+                </div>
+                <div class="endpoint-description">
+                    Get 24-hour water condition predictions based on historical trends.
+                </div>
+            </div>
+            
+            <div class="endpoint-card">
+                <span class="endpoint-method">GET</span>
+                <div class="endpoint-path">
+                    <a href="https://api.samwduncan.com/api/weather/extended" target="_blank">
+                        https://api.samwduncan.com/api/weather/extended
+                    </a>
+                </div>
+                <div class="endpoint-description">
+                    Get extended weather forecast (up to 7 days) with hourly data.
+                </div>
+            </div>
+        </section>
+        
+        <section id="rowcast-scores" class="endpoint-section">
+            <h2 class="section-title">RowCast Score Endpoints</h2>
+            
+            <div class="endpoint-card">
+                <span class="endpoint-method">GET</span>
+                <div class="endpoint-path">
+                    <a href="https://api.samwduncan.com/api/rowcast/forecast" target="_blank">
+                        https://api.samwduncan.com/api/rowcast/forecast
+                    </a>
+                </div>
+                <div class="endpoint-description">
+                    Get RowCast scores for the next 24 hours with detailed conditions for each hour.
+                </div>
+                <div class="endpoint-example">
+                    <h4>Response Example:</h4>
+                    <div class="code-block">
+                        <pre>[
+  {
+    "timestamp": "2025-07-01T15:00",
+    "score": 8.2,
+    "conditions": {
+      "windSpeed": 9.1,
+      "windGust": 13.2,
+      "apparentTemp": 76.1,
+      "discharge": 845,
+      "waterTemp": 68.7
+    }
+  }
+]</pre>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="endpoint-card">
+                <span class="endpoint-method">GET</span>
+                <div class="endpoint-path">
+                    <a href="https://api.samwduncan.com/api/rowcast/forecast/extended" target="_blank">
+                        https://api.samwduncan.com/api/rowcast/forecast/extended
+                    </a>
+                </div>
+                <div class="endpoint-description">
+                    Get extended RowCast forecast (up to 7 days) using NOAA river data when available.
+                </div>
+            </div>
+            
+            <div class="endpoint-card">
+                <span class="endpoint-method">GET</span>
+                <div class="endpoint-path">
+                    <a href="https://api.samwduncan.com/api/rowcast/forecast/short-term" target="_blank">
+                        https://api.samwduncan.com/api/rowcast/forecast/short-term
+                    </a>
+                </div>
+                <div class="endpoint-description">
+                    Get high-resolution 15-minute interval forecasts for the next 3 hours.
+                </div>
+            </div>
+        </section>
+        
+        <section id="time-queries" class="endpoint-section">
+            <h2 class="section-title">Time-Based Query Endpoints</h2>
+            
+            <div class="endpoint-card">
+                <span class="endpoint-method">GET</span>
+                <div class="endpoint-path">
+                    <a href="https://api.samwduncan.com/api/rowcast/forecast/2h" target="_blank">
+                        https://api.samwduncan.com/api/rowcast/forecast/&lt;time_offset&gt;
+                    </a>
+                </div>
+                <div class="endpoint-description">
+                    Get RowCast score for a specific time offset from now.
+                </div>
+                <div class="parameter-list">
+                    <h4>Examples:</h4>
+                    <div class="parameter-item">
+                        <span class="parameter-name">2h</span>
+                        <div class="parameter-description">2 hours from now</div>
+                    </div>
+                    <div class="parameter-item">
+                        <span class="parameter-name">30m</span>
+                        <div class="parameter-description">30 minutes from now</div>
+                    </div>
+                    <div class="parameter-item">
+                        <span class="parameter-name">1d</span>
+                        <div class="parameter-description">1 day from now</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="endpoint-card">
+                <span class="endpoint-method">GET</span>
+                <div class="endpoint-path">
+                    <a href="https://api.samwduncan.com/api/rowcast/at/2025-07-01T16:00:00" target="_blank">
+                        https://api.samwduncan.com/api/rowcast/at/&lt;timestamp&gt;
+                    </a>
+                </div>
+                <div class="endpoint-description">
+                    Get RowCast score for a specific timestamp (ISO 8601 format).
+                </div>
+                <div class="parameter-list">
+                    <h4>Format:</h4>
+                    <div class="parameter-item">
+                        <span class="parameter-name">YYYY-MM-DDTHH:MM:SS</span>
+                        <div class="parameter-description">ISO 8601 timestamp format</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <section id="complete-data" class="endpoint-section">
+            <h2 class="section-title">Complete Data Endpoints</h2>
+            
+            <div class="endpoint-card">
+                <span class="endpoint-method">GET</span>
+                <div class="endpoint-path">
+                    <a href="https://api.samwduncan.com/api/complete" target="_blank">
+                        https://api.samwduncan.com/api/complete
+                    </a>
+                </div>
+                <div class="endpoint-description">
+                    Get all current data, 24-hour forecasts, and scores in one comprehensive response. Perfect for dashboard applications.
+                </div>
+                <div class="endpoint-example">
+                    <h4>Response Structure:</h4>
+                    <div class="code-block">
+                        <pre>{
+  "current": {
+    "weather": { /* current weather data */ },
+    "water": { /* current water data */ },
+    "rowcastScore": 8.45
+  },
+  "forecast": {
+    "weather": [ /* 24-hour weather forecast */ ],
+    "water": [ /* 24-hour water predictions */ ],
+    "rowcastScores": [ /* 24-hour score forecasts */ ]
+  },
+  "lastUpdated": "2025-07-01T14:30:00"
+}</pre>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="endpoint-card">
+                <span class="endpoint-method">GET</span>
+                <div class="endpoint-path">
+                    <a href="https://api.samwduncan.com/api/complete/extended" target="_blank">
+                        https://api.samwduncan.com/api/complete/extended
+                    </a>
+                </div>
+                <div class="endpoint-description">
+                    Get all data including extended forecasts and NOAA stageflow data for comprehensive analysis.
+                </div>
+            </div>
+        </section>
+        
+        <section id="noaa-data" class="endpoint-section">
+            <h2 class="section-title">NOAA Data Endpoints</h2>
+            
+            <div class="endpoint-card">
+                <span class="endpoint-method">GET</span>
+                <div class="endpoint-path">
+                    <a href="https://api.samwduncan.com/api/noaa/stageflow" target="_blank">
+                        https://api.samwduncan.com/api/noaa/stageflow
+                    </a>
+                </div>
+                <div class="endpoint-description">
+                    Get complete NOAA NWPS stageflow data including current observations and forecasts.
+                </div>
+            </div>
+            
+            <div class="endpoint-card">
+                <span class="endpoint-method">GET</span>
+                <div class="endpoint-path">
+                    <a href="https://api.samwduncan.com/api/noaa/stageflow/current" target="_blank">
+                        https://api.samwduncan.com/api/noaa/stageflow/current
+                    </a>
+                </div>
+                <div class="endpoint-description">
+                    Get current observed stageflow data from NOAA stations.
+                </div>
+            </div>
+            
+            <div class="endpoint-card">
+                <span class="endpoint-method">GET</span>
+                <div class="endpoint-path">
+                    <a href="https://api.samwduncan.com/api/noaa/stageflow/forecast" target="_blank">
+                        https://api.samwduncan.com/api/noaa/stageflow/forecast
+                    </a>
+                </div>
+                <div class="endpoint-description">
+                    Get NOAA stageflow forecast data for river conditions.
+                </div>
+            </div>
+        </section>
+        
+        <section id="examples" class="endpoint-section">
+            <h2 class="section-title">Usage Examples</h2>
+            
+            <div class="endpoint-card">
+                <h3 style="color: var(--text-primary); margin-bottom: 1rem;">Getting Current Conditions</h3>
+                <div class="code-block">
+                    <pre>curl https://api.samwduncan.com/api/complete</pre>
+                </div>
+                <div class="endpoint-description">
+                    Returns all current data needed for a comprehensive view of rowing conditions.
+                </div>
+            </div>
+            
+            <div class="endpoint-card">
+                <h3 style="color: var(--text-primary); margin-bottom: 1rem;">Checking Conditions in 2 Hours</h3>
+                <div class="code-block">
+                    <pre>curl https://api.samwduncan.com/api/rowcast/forecast/2h</pre>
+                </div>
+                <div class="endpoint-description">
+                    Perfect for planning your rowing session with a specific time in mind.
+                </div>
+            </div>
+            
+            <div class="endpoint-card">
+                <h3 style="color: var(--text-primary); margin-bottom: 1rem;">Getting Extended Forecast</h3>
+                <div class="code-block">
+                    <pre>curl https://api.samwduncan.com/api/rowcast/forecast/extended</pre>
+                </div>
+                <div class="endpoint-description">
+                    Get up to 7 days of rowing condition forecasts using enhanced NOAA data.
+                </div>
+            </div>
+            
+            <div class="endpoint-card">
+                <h3 style="color: var(--text-primary); margin-bottom: 1rem;">JavaScript Fetch Example</h3>
+                <div class="code-block">
+                    <pre>fetch('https://api.samwduncan.com/api/complete')
+  .then(response => response.json())
+  .then(data => {
+    console.log('Current RowCast Score:', data.current.rowcastScore);
+    console.log('Weather:', data.current.weather);
+    console.log('Water:', data.current.water);
+  })
+  .catch(error => console.error('Error:', error));</pre>
+                </div>
+            </div>
+        </section>
+        
+        <section class="endpoint-section">
+            <h2 class="section-title">Scoring Algorithm</h2>
+            <div class="parameter-list">
+                <h4>RowCast Score Factors (0-10 scale):</h4>
+                <div class="parameter-item">
+                    <span class="parameter-name">Temperature</span>
+                    <div class="parameter-description">Optimal range: 74-85°F (apparent temperature)</div>
+                </div>
+                <div class="parameter-item">
+                    <span class="parameter-name">Wind</span>
+                    <div class="parameter-description">Low wind speeds and gusts preferred (&lt;15 mph ideal)</div>
+                </div>
+                <div class="parameter-item">
+                    <span class="parameter-name">Water Flow</span>
+                    <div class="parameter-description">Optimal discharge rate for safe rowing conditions</div>
+                </div>
+                <div class="parameter-item">
+                    <span class="parameter-name">Water Temperature</span>
+                    <div class="parameter-description">Warmer water temperatures for safety</div>
+                </div>
+                <div class="parameter-item">
+                    <span class="parameter-name">Precipitation</span>
+                    <div class="parameter-description">Minimal precipitation preferred</div>
+                </div>
+                <div class="parameter-item">
+                    <span class="parameter-name">UV Index</span>
+                    <div class="parameter-description">Moderate UV levels (safety consideration)</div>
+                </div>
+                <div class="parameter-item">
+                    <span class="parameter-name">Safety Alerts</span>
+                    <div class="parameter-description">Weather warnings, visibility, lightning potential</div>
+                </div>
+            </div>
+            
+            <div class="parameter-list">
+                <h4>Score Interpretation:</h4>
+                <div class="parameter-item">
+                    <span class="parameter-name status-200">8.0 - 10.0</span>
+                    <div class="parameter-description">Excellent rowing conditions</div>
+                </div>
+                <div class="parameter-item">
+                    <span class="parameter-name status-200">6.0 - 7.9</span>
+                    <div class="parameter-description">Good conditions with minor considerations</div>
+                </div>
+                <div class="parameter-item">
+                    <span class="parameter-name status-400">4.0 - 5.9</span>
+                    <div class="parameter-description">Fair conditions - exercise caution</div>
+                </div>
+                <div class="parameter-item">
+                    <span class="parameter-name status-500">0.0 - 3.9</span>
+                    <div class="parameter-description">Poor conditions - not recommended</div>
+                </div>
+            </div>
+        </section>
+    </div>
+</body>
+</html>

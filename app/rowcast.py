@@ -119,61 +119,103 @@ def compute_rowcast(params):
     lightning_potential = params.get('lightningPotential')
     precip_prob = params.get('precipitationProbability')
 
-    # Temperature score - optimal range 74-85°F
-    tempSc = temp_score(temp)
+    # Temperature score - optimal range 65-85°F (more realistic for rowing comfort)
+    if temp is None:
+        tempSc = 0.3  # Unknown temp penalty
+    elif 65 <= temp <= 85:  # Ideal rowing temperature range
+        tempSc = 1.0
+    elif 55 <= temp < 65:  # Cool but acceptable
+        tempSc = 0.8 - (65 - temp) * 0.05  # Gradual decline
+    elif 85 < temp <= 95:  # Warm but manageable
+        tempSc = 0.9 - (temp - 85) * 0.08  # Gradual decline for heat
+    elif temp < 55:  # Too cold for comfortable rowing
+        tempSc = max(0.1, 0.8 - (55 - temp) * 0.1)
+    else:  # temp > 95 - too hot
+        tempSc = max(0.05, 0.1 - (temp - 95) * 0.02)
 
-    # Wind score - ideal: low wind speed and gusts
-    # Using minimum ensures both speed and gusts are reasonable
-    windSc = min(
-        exp_fall(wind_speed, 5, 25),  # Ideal: <5mph, poor: >25mph
-        exp_fall(wind_gust, 10, 35)   # Ideal: <10mph, poor: >35mph
-    )
+    # Wind score - more nuanced for rowing conditions
+    # Rowing is heavily affected by wind, especially gusts
+    max_wind = max(wind_speed, wind_gust * 0.7)  # Weight gusts less but still important
+    
+    if max_wind <= 5:  # Ideal conditions
+        windSc = 1.0
+    elif max_wind <= 10:  # Light wind - still good
+        windSc = 0.9
+    elif max_wind <= 15:  # Moderate wind - manageable but challenging
+        windSc = 0.6 - (max_wind - 10) * 0.06
+    elif max_wind <= 25:  # Strong wind - difficult conditions
+        windSc = 0.3 - (max_wind - 15) * 0.02
+    else:  # Very strong wind - dangerous
+        windSc = max(0.01, 0.1 - (max_wind - 25) * 0.01)
 
-    # Flow (discharge) score - optimal flow for rowing
-    if flow <= 8000:  # Good flow conditions
-        flowSc = 1
-    elif flow < 13000:  # Moderate flow - exponential decay
-        flowSc = exp(-2 * (flow - 8000) / 5000)
-    else:  # High flow - dangerous
+    # Flow (discharge) score - updated ranges with HARD SAFETY CUTOFF
+    if flow >= 13000:  # HARD CUTOFF - NOT SAFE TO ROW
+        flowSc = 0  # Zero score - absolutely not safe
+    elif 2000 <= flow <= 8000:  # Optimal flow range for rowing
+        flowSc = 1.0
+    elif 8000 < flow < 13000:  # Higher flow - increasingly dangerous
+        # Exponential decay from 8000 to 13000 cfs
+        flowSc = max(0.05, exp(-3 * (flow - 8000) / 5000))
+    elif 1000 <= flow < 2000:  # Low flow - may be shallow
+        flowSc = 0.7 + (flow - 1000) * 0.3 / 1000
+    elif flow < 1000:  # Very low flow - navigation issues
+        flowSc = max(0.1, flow / 1000 * 0.7)
+    else:  # Should not reach here, but safety fallback
         flowSc = 0
 
-    # Water temperature score - warmer is generally better for safety
+    # Water temperature score - safety-focused for rowing
     if water_temp is None:
         waterTempSc = 0.5  # Unknown water temp - moderate penalty
-    elif water_temp >= 65:  # Comfortable water temperature
-        waterTempSc = 1
-    elif water_temp >= 50:  # Cold but manageable
-        waterTempSc = 0.7
-    else:  # Very cold water - safety concern
-        waterTempSc = exp(-2 * (50 - water_temp) / 15)
+    elif water_temp >= 70:  # Warm water - safe for immersion
+        waterTempSc = 1.0
+    elif water_temp >= 60:  # Cool but safe with proper gear
+        waterTempSc = 0.9
+    elif water_temp >= 50:  # Cold - hypothermia risk increases
+        waterTempSc = 0.6
+    elif water_temp >= 40:  # Very cold - serious safety concern
+        waterTempSc = 0.3
+    else:  # Extremely cold water - life-threatening if immersed
+        waterTempSc = 0.1
 
-    # Precipitation score - any significant precipitation is problematic
-    if prec >= 10:  # Heavy precipitation
-        precipSc = 0
-    elif prec >= 5:  # Moderate precipitation
+    # Precipitation score - more realistic for outdoor activity
+    if prec >= 5:  # Heavy rain - dangerous and uncomfortable
+        precipSc = 0.05
+    elif prec >= 2:  # Moderate rain - poor conditions
         precipSc = 0.2
-    elif prec >= 1:  # Light precipitation
+    elif prec >= 0.5:  # Light rain - manageable but not ideal
         precipSc = 0.5
-    else:  # Light to no precipitation
-        precipSc = exp(-1.5 * prec)
+    elif prec >= 0.1:  # Very light rain/drizzle
+        precipSc = 0.8
+    else:  # No precipitation
+        precipSc = 1.0
 
-    # UV index score - high UV affects comfort and safety
-    if uv < 3:  # Low UV
-        uvSc = 1
-    elif uv < 6:  # Moderate UV
-        uvSc = 0.9
-    elif uv < 8:  # High UV
-        uvSc = 0.7
-    elif uv < 11:  # Very high UV
-        uvSc = 0.4
-    else:  # Extreme UV
-        uvSc = 0.1
+    # UV index score - comfort and safety consideration
+    if uv <= 2:  # Low UV - ideal
+        uvSc = 1.0
+    elif uv <= 5:  # Moderate UV - good conditions
+        uvSc = 0.95
+    elif uv <= 7:  # High UV - need sun protection
+        uvSc = 0.8
+    elif uv <= 10:  # Very high UV - significant sun protection needed
+        uvSc = 0.5
+    else:  # Extreme UV - dangerous exposure
+        uvSc = 0.2
     
     # Safety score - can override all other factors
     safetySc = safety_alert_score(weather_alerts, visibility, lightning_potential, precip_prob)
 
-    # Compute combined score - safety score can zero out the entire score
-    raw_score = 10 * tempSc * windSc * flowSc * precipSc * uvSc * waterTempSc * safetySc
+    # Compute combined score with weighted factors
+    # Wind and safety are most critical, followed by temperature and flow
+    raw_score = 10 * (
+        tempSc * 0.8 *      # Temperature weight: 0.8
+        windSc * 1.0 *      # Wind weight: 1.0 (most important)
+        flowSc * 0.9 *      # Flow weight: 0.9 (very important)
+        precipSc * 0.8 *    # Precipitation weight: 0.8
+        uvSc * 0.6 *        # UV weight: 0.6 (comfort factor)
+        waterTempSc * 0.7 * # Water temp weight: 0.7 (safety factor)
+        safetySc * 1.2      # Safety weight: 1.2 (override factor)
+    ) / (0.8 + 1.0 + 0.9 + 0.8 + 0.6 + 0.7 + 1.2)  # Normalize weights
+    
     score = clamp(round(raw_score, 2), 0, 10)
     return score
 

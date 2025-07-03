@@ -1,0 +1,17 @@
+{
+  "name": "rowcast-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite --port 3000 --open",
+    "build": "vite build",
+    "preview": "vite preview",
+    "api": "bash start_server.sh",
+    "dev:full": "concurrently \"npm run api\" \"npm run dev\"",
+    "build:prod": "npm run build && npm run api"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0",
+    "concurrently": "^8.2.0"
+  }
+}

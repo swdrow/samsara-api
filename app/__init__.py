@@ -5,6 +5,7 @@ from flask import Flask
 from app.extensions import scheduler, redis_client
 from app.routes import bp
 import redis # <--- ADD THIS LINE to handle the exception type
+import os
 
 def create_app():
     """
@@ -12,6 +13,19 @@ def create_app():
     """
     app = Flask(__name__)
     
+    # Configuration for development vs production
+    env = os.getenv('FLASK_ENV', 'development')
+    
+    if env == 'production':
+        # Production: serve built frontend files from dist/
+        app.static_folder = os.path.join(os.path.dirname(app.root_path), 'dist')
+        app.static_url_path = '/static'
+        app.template_folder = os.path.join(os.path.dirname(app.root_path), 'dist')
+    else:
+        # Development: use standard Flask static/templates folders
+        # Frontend dev server will handle static assets on port 3000
+        pass
+
     # --- Check Redis Connection ---
     try:
         redis_client.ping()
