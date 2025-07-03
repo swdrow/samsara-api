@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RowCast API Documentation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #0a0a0a;
+            color: #ffffff;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding: 2rem;
+            background: #1a1a1a;
+            border-radius: 10px;
+        }
+        .header h1 {
+            color: #66b3ff;
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+        .base-url {
+            background: #2a2a2a;
+            border: 1px solid #333;
+            border-radius: 5px;
+            padding: 1rem;
+            margin: 1rem 0;
+            font-family: monospace;
+            color: #66b3ff;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+        .section {
+            background: #1a1a1a;
+            margin-bottom: 2rem;
+            padding: 2rem;
+            border-radius: 10px;
+            border: 1px solid #333;
+        }
+        .section h2 {
+            color: #ffffff;
+            font-size: 1.75rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid #007acc;
+            padding-bottom: 0.5rem;
+        }
+        .endpoint {
+            background: #2a2a2a;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border-left: 4px solid #007acc;
+        }
+        .method {
+            background: #28a745;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 0.75rem;
+            display: inline-block;
+        }
+        .url {
+            font-family: monospace;
+            font-size: 1.1rem;
+            color: #66b3ff;
+            margin-bottom: 1rem;
+            word-break: break-all;
+        }
+        .url a {
+            color: #66b3ff;
+            text-decoration: none;
+        }
+        .url a:hover {
+            color: #007acc;
+            text-decoration: underline;
+        }
+        .description {
+            color: #b0b0b0;
+            margin-bottom: 1rem;
+        }
+        .back-btn {
+            background: linear-gradient(135deg, #007acc, #005299);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: 500;
+            display: inline-block;
+            margin-bottom: 2rem;
+        }
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 122, 204, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/dashboard" class="back-btn">← Back to Dashboard</a>
+        
+        <div class="header">
+            <h1>🚣 RowCast API Documentation</h1>
+            <p>Complete reference for rowing conditions API endpoints</p>
+            <div class="base-url">https://api.samwduncan.com</div>
+        </div>
+        
+        <section class="section">
+            <h2>Quick Reference</h2>
+            
+            <div class="endpoint">
+                <span class="method">GET</span>
+                <div class="url">
+                    <a href="https://api.samwduncan.com/api/complete" target="_blank">
+                        https://api.samwduncan.com/api/complete
+                    </a>
+                </div>
+                <div class="description">
+                    Get all current data, forecasts, and scores in one comprehensive response
+                </div>
+            </div>
+            
+            <div class="endpoint">
+                <span class="method">GET</span>
+                <div class="url">
+                    <a href="https://api.samwduncan.com/api/rowcast" target="_blank">
+                        https://api.samwduncan.com/api/rowcast
+                    </a>
+                </div>
+                <div class="description">
+                    Get current RowCast score and all parameters used in the calculation
+                </div>
+            </div>
+            
+            <div class="endpoint">
+                <span class="method">GET</span>
+                <div class="url">
+                    <a href="https://api.samwduncan.com/api/rowcast/forecast" target="_blank">
+                        https://api.samwduncan.com/api/rowcast/forecast
+                    </a>
+                </div>
+                <div class="description">
+                    Get RowCast scores for the next 24 hours with detailed conditions
+                </div>
+            </div>
+            
+            <div class="endpoint">
+                <span class="method">GET</span>
+                <div class="url">
+                    <a href="https://api.samwduncan.com/api/rowcast/forecast/extended" target="_blank">
+                        https://api.samwduncan.com/api/rowcast/forecast/extended
+                    </a>
+                </div>
+                <div class="description">
+                    Get extended RowCast forecast (up to 7 days) using NOAA data when available
+                </div>
+            </div>
+            
+            <div class="endpoint">
+                <span class="method">GET</span>
+                <div class="url">
+                    <a href="https://api.samwduncan.com/api/rowcast/forecast/2h" target="_blank">
+                        https://api.samwduncan.com/api/rowcast/forecast/2h
+                    </a>
+                </div>
+                <div class="description">
+                    Get RowCast score for 2 hours from now (supports: 30m, 1h, 2h, 1d, etc.)
+                </div>
+            </div>
+            
+            <div class="endpoint">
+                <span class="method">GET</span>
+                <div class="url">
+                    <a href="https://api.samwduncan.com/api/weather/current" target="_blank">
+                        https://api.samwduncan.com/api/weather/current
+                    </a>
+                </div>
+                <div class="description">
+                    Get current weather conditions including temperature, wind, and UV index
+                </div>
+            </div>
+            
+            <div class="endpoint">
+                <span class="method">GET</span>
+                <div class="url">
+                    <a href="https://api.samwduncan.com/api/water/current" target="_blank">
+                        https://api.samwduncan.com/api/water/current
+                    </a>
+                </div>
+                <div class="description">
+                    Get current water conditions including flow rate, temperature, and gauge height
+                </div>
+            </div>
+            
+            <div class="endpoint">
+                <span class="method">GET</span>
+                <div class="url">
+                    <a href="https://api.samwduncan.com/api/noaa/stageflow" target="_blank">
+                        https://api.samwduncan.com/api/noaa/stageflow
+                    </a>
+                </div>
+                <div class="description">
+                    Get NOAA NWPS stageflow data including current observations and forecasts
+                </div>
+            </div>
+        </section>
+        
+        <section class="section">
+            <h2>RowCast Scoring</h2>
+            <p><strong>Score Range:</strong> 0-10 (higher is better)</p>
+            <ul>
+                <li><strong>8.0-10.0:</strong> Excellent rowing conditions</li>
+                <li><strong>6.0-7.9:</strong> Good conditions with minor considerations</li>
+                <li><strong>4.0-5.9:</strong> Fair conditions - exercise caution</li>
+                <li><strong>0.0-3.9:</strong> Poor conditions - not recommended</li>
+            </ul>
+            
+            <p><strong>Factors considered:</strong></p>
+            <ul>
+                <li>Temperature (optimal: 74-85°F)</li>
+                <li>Wind speed and gusts</li>
+                <li>Water flow rate and temperature</li>
+                <li>Precipitation and UV index</li>
+                <li>Safety alerts and weather warnings</li>
+            </ul>
+        </section>
+        
+        <section class="section">
+            <h2>Usage Examples</h2>
+            
+            <h3>Get Current Conditions</h3>
+            <pre style="background: #0a0a0a; padding: 1rem; border-radius: 5px; overflow-x: auto;">curl https://api.samwduncan.com/api/complete</pre>
+            
+            <h3>Check Conditions in 2 Hours</h3>
+            <pre style="background: #0a0a0a; padding: 1rem; border-radius: 5px; overflow-x: auto;">curl https://api.samwduncan.com/api/rowcast/forecast/2h</pre>
+            
+            <h3>Get Extended Forecast</h3>
+            <pre style="background: #0a0a0a; padding: 1rem; border-radius: 5px; overflow-x: auto;">curl https://api.samwduncan.com/api/rowcast/forecast/extended</pre>
+        </section>
+        
+        <div style="text-align: center; margin-top: 3rem; color: #666;">
+            <p>RowCast API - Advanced rowing condition forecasting</p>
+            <p>All timestamps are in EST/EDT timezone</p>
+        </div>
+    </div>
+</body>
+</html>

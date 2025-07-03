@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RowCast Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-water"></i>
+                    <span>RowCast</span>
+                </div>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item active">
+                    <a href="#dashboard" class="nav-link" data-section="dashboard">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#forecast" class="nav-link" data-section="forecast">
+                        <i class="fas fa-cloud-sun"></i>
+                        <span>Forecast</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#conditions" class="nav-link" data-section="conditions">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Current Conditions</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#api-docs" class="nav-link" data-section="api-docs">
+                        <i class="fas fa-book"></i>
+                        <span>API Documentation</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-content">
+                    <h1 class="page-title">RowCast Dashboard</h1>
+                    <div class="header-actions">
+                        <div class="last-updated" data-tooltip="Last data refresh">
+                            <i class="fas fa-clock"></i>
+                            <span id="last-updated">Loading...</span>
+                        </div>
+                        <button class="refresh-btn" onclick="refreshData()" data-tooltip="Refresh all data">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Dashboard Section -->
+            <section id="dashboard" class="content-section active">
+                <!-- Current Score Widget -->
+                <div class="widget-grid">
+                    <div class="widget current-score-widget">
+                        <div class="widget-header">
+                            <h3>Current RowCast Score</h3>
+                            <div class="score-indicator" data-tooltip="Current rowing conditions score (0-10)">
+                                <span id="current-score">--</span>
+                                <small>/10</small>
+                            </div>
+                        </div>
+                        <div class="score-visualization">
+                            <div class="score-bar">
+                                <div class="score-fill" id="score-fill"></div>
+                            </div>
+                            <div class="score-labels">
+                                <span>Poor</span>
+                                <span>Fair</span>
+                                <span>Good</span>
+                                <span>Excellent</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Stats -->
+                    <div class="widget stats-widget">
+                        <div class="widget-header">
+                            <h3>Current Conditions</h3>
+                        </div>
+                        <div class="stats-grid">
+                            <div class="stat-item" data-tooltip="Current water flow rate">
+                                <div class="stat-icon">
+                                    <i class="fas fa-tint"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <span class="stat-value" id="current-flow">--</span>
+                                    <span class="stat-label">Flow (cfs)</span>
+                                </div>
+                            </div>
+                            <div class="stat-item" data-tooltip="Wind speed and direction">
+                                <div class="stat-icon">
+                                    <i class="fas fa-wind"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <span class="stat-value" id="current-wind">--</span>
+                                    <span class="stat-label">Wind (mph)</span>
+                                </div>
+                            </div>
+                            <div class="stat-item" data-tooltip="Apparent temperature">
+                                <div class="stat-icon">
+                                    <i class="fas fa-thermometer-half"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <span class="stat-value" id="current-temp">--</span>
+                                    <span class="stat-label">Temp (°F)</span>
+                                </div>
+                            </div>
+                            <div class="stat-item" data-tooltip="Water temperature">
+                                <div class="stat-icon">
+                                    <i class="fas fa-water"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <span class="stat-value" id="current-water-temp">--</span>
+                                    <span class="stat-label">Water (°F)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Forecast Widget -->
+                <div class="widget forecast-widget">
+                    <div class="widget-header">
+                        <h3>Forecast</h3>
+                        <div class="forecast-controls">
+                            <div class="time-range-selector">
+                                <button class="time-btn active" data-range="24h" data-tooltip="24-hour forecast">24H</button>
+                                <button class="time-btn" data-range="7d" data-tooltip="7-day forecast">7D</button>
+                                <button class="time-btn" data-range="extended" data-tooltip="Extended forecast with NOAA data">Extended</button>
+                            </div>
+                            <div class="pagination-controls">
+                                <button class="page-btn" id="prev-page" onclick="changeForecastPage(-1)" data-tooltip="Previous forecast page">
+                                    <i class="fas fa-chevron-left"></i>
+                                </button>
+                                <span class="page-indicator" id="page-indicator" data-tooltip="Current page / Total pages">1 / 1</span>
+                                <button class="page-btn" id="next-page" onclick="changeForecastPage(1)" data-tooltip="Next forecast page">
+                                    <i class="fas fa-chevron-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Daily Quick Navigation (visible in extended mode) -->
+                    <div class="daily-quick-nav" id="daily-quick-nav" style="display: none;">
+                        <div class="daily-quick-cards" id="daily-quick-cards">
+                            <!-- Quick daily cards will be populated by JavaScript -->
+                        </div>
+                    </div>
+                    
+                    <div class="forecast-content">
+                        <div class="forecast-grid" id="forecast-grid">
+                            <!-- Forecast cards will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Section -->
+                <div class="widget-grid">
+                    <div class="widget chart-widget">
+                        <div class="widget-header">
+                            <h3 data-tooltip="RowCast score trend over time">Score Trend</h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="score-chart"></canvas>
+                        </div>
+                    </div>
+                    <div class="widget chart-widget">
+                        <div class="widget-header">
+                            <h3 data-tooltip="Wind speed and temperature forecast">Conditions Overview</h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="conditions-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Forecast Section -->
+            <section id="forecast" class="content-section">
+                <div class="section-header">
+                    <h2>Detailed Forecast</h2>
+                    <p>Extended rowing conditions forecast with hourly breakdowns</p>
+                </div>
+                
+                <!-- Daily Navigation (only visible in extended mode) -->
+                <div class="daily-navigation" id="daily-navigation" style="display: none;">
+                    <h3>Daily Summary</h3>
+                    <div class="daily-cards" id="daily-cards">
+                        <!-- Daily summary cards will be populated by JavaScript -->
+                    </div>
+                </div>
+                
+                <div class="forecast-table-container">
+                    <table class="forecast-table" id="detailed-forecast-table">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Score</th>
+                                <th>Flow</th>
+                                <th>Wind</th>
+                                <th>Gusts</th>
+                                <th>Temp</th>
+                                <th>Water Temp</th>
+                                <th>Conditions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Table rows will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Current Conditions Section -->
+            <section id="conditions" class="content-section">
+                <div class="section-header">
+                    <h2>Current Conditions</h2>
+                    <p>Real-time data from weather stations and water sensors</p>
+                </div>
+                <div class="conditions-grid">
+                    <div class="condition-card">
+                        <div class="card-header">
+                            <h3>Weather Conditions</h3>
+                            <i class="fas fa-cloud-sun"></i>
+                        </div>
+                        <div class="condition-details" id="weather-details">
+                            <!-- Weather details will be populated by JavaScript -->
+                        </div>
+                    </div>
+                    <div class="condition-card">
+                        <div class="card-header">
+                            <h3>Water Conditions</h3>
+                            <i class="fas fa-water"></i>
+                        </div>
+                        <div class="condition-details" id="water-details">
+                            <!-- Water details will be populated by JavaScript -->
+                        </div>
+                    </div>
+                    <div class="condition-card">
+                        <div class="card-header">
+                            <h3>Safety Information</h3>
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <div class="condition-details" id="safety-details">
+                            <!-- Safety details will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- API Documentation Section -->
+            <section id="api-docs" class="content-section">
+                <div class="section-header">
+                    <h2>API Documentation</h2>
+                    <p>Complete reference for the RowCast API endpoints</p>
+                </div>
+                <div class="api-docs-content">
+                    <!-- API documentation will be loaded here -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+            <p>Loading data...</p>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+    <script>
+        // Initialize dashboard when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Initializing RowCast Dashboard...');
+            window.dashboard = new RowCastDashboard();
+        });
+        
+        // Global functions for HTML onclick handlers
+        function refreshData() {
+            if (window.dashboard) {
+                window.dashboard.refreshData();
+            }
+        }
+        
+        function changeForecastPage(direction) {
+            if (window.dashboard) {
+                window.dashboard.changeForecastPage(direction);
+            }
+        }
+        
+        function toggleDailyDetails(dayIndex) {
+            const details = document.getElementById(`daily-details-${dayIndex}`);
+            const button = document.querySelector(`[data-day-index="${dayIndex}"] .daily-card-expand i`);
+            
+            if (details.classList.contains('expanded')) {
+                details.classList.remove('expanded');
+                button.classList.remove('fa-chevron-up');
+                button.classList.add('fa-chevron-down');
+            } else {
+                // Close all other expanded details
+                document.querySelectorAll('.daily-details.expanded').forEach(detail => {
+                    detail.classList.remove('expanded');
+                });
+                document.querySelectorAll('.daily-card-expand i').forEach(icon => {
+                    icon.classList.remove('fa-chevron-up');
+                    icon.classList.add('fa-chevron-down');
+                });
+                
+                // Open this one
+                details.classList.add('expanded');
+                button.classList.remove('fa-chevron-down');
+                button.classList.add('fa-chevron-up');
+            }
+        }
+    </script>
+</body>
+</html>

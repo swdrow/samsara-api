@@ -1,0 +1,70 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+
+# VSCode
+.vscode/
+
+# Environment
+.env
+.venv/
+venv/
+ENV/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Server logs
+logs/
+*.log
+
+# Redis dump
+*.rdb
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Misc
+*.swp
+*.swo
+
+# Gunicorn PID
+*.pid
+
+.config/
+
+# Node.js
+node_modules/
+dist/
+.cache/
+coverage/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Vite/Frontend
+*.cache
+
+# Build
+build/
+
+# Ignore manifest and lock files
+package-lock.json
+yarn.lock
+
+# Ignore static build artifacts
+app/static/dist/
+
+# Ignore temp files
+*.tmp
+*.bak
+
+# IDE
+.idea/
+
+# Ignore test output
+*.out
